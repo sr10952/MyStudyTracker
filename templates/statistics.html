@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Study Statistics</title>
+</head>
+<body>
+    <h1>Study Statistics</h1>
+    <h2>Last 7 Days Total Study Time</h2>
+    <ul>
+        {% for day in seven_days_sum %}
+            <li>{{ day[0] }}: {{ day[1] }} hours</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Average Daily Study Time Over Last 7 Days</h2>
+    <p>{{ seven_days_avg[0] }} hours</p>
+
+    <h2>Daily Study Time by Slot</h2>
+    <table>
+        <tr>
+            <th>Date</th>
+            <th>Before Shachris</th>
+            <th>AM</th>
+            <th>PM</th>
+            <th>Night</th>
+            <th>Total</th>
+        </tr>
+        {% for day in daily_by_slot %}
+            <tr>
+                <td>{{ day[0] }}</td>
+                <td>{{ day[1] }}</td>
+                <td>{{ day[2] }}</td>
+                <td>{{ day[3] }}</td>
+                <td>{{ day[4] }}</td>
+                <td>{{ day[5] }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

@@ -1,0 +1,12 @@
+<form method="post" action="/add_study_time">
+    Timing: 
+    <select name="timing_id">
+        {% for timing in timings %}
+            <option value="{{ timing.TimingID }}">{{ timing.TimingName }}</option>
+        {% endfor %}
+    </select><br>
+    Hours: <input type="number" name="hours" min="0" max="23"><br>
+    Minutes: <input type="number" name="minutes" min="0" max="59"><br>
+    Date: <input type="date" name="date" value="{{ default_date }}"><br>
+    <input type="submit" value="Add Study Time">
+</form>
