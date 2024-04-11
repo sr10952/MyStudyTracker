@@ -56,6 +56,16 @@ def load_user():
         # User is not logged in
         g.user = None
 
+def hours_to_hhmm(hours):
+    # Convert hours to total minutes
+    total_minutes = round(hours * 60)
+    # Round to the nearest 5 minutes
+    total_minutes = 5 * round(total_minutes / 5)
+    # Get hours and minutes
+    hh = total_minutes // 60
+    mm = total_minutes % 60
+    return f"{hh:02d}:{mm:02d}"
+
 
 @app.route('/')
 def index():
@@ -120,6 +130,7 @@ def statistics():
         StudyInformation.UserID == user_id,
         StudyInformation.Date >= datetime.datetime.now() - datetime.timedelta(days=7)
     ).group_by(StudyInformation.Date).all()
+    seven_days_sum = [(timing[0], hours_to_hhmm(timing[1])) for timing in seven_days_sum]
 
     # Query for 7 Days Average
     sum_query = db.session.query(db.func.sum(StudyInformation.Hours)).filter(
@@ -154,9 +165,10 @@ def add_study_time():
         return redirect(url_for('login'))
 
     user_id = session['user_id']
+    today = dt.today().date()
 
     if request.method == 'POST':
-                    # Get form data
+        # Get form data
         Timing_ID = request.form['timing_id']
         hours = int(request.form['hours'])
         minutes = int(request.form['minutes'])
@@ -173,9 +185,21 @@ def add_study_time():
         return 'Study time added successfully'
     else:
         timings = StudyTiming.query.all()
-        return render_template('add_study_time.html', timings=timings, default_date=dt.today().strftime('%Y-%m-%d'))
-
-
+        todays_study = db.session.query(
+            StudyTiming.TimingName,
+            db.func.sum(StudyInformation.Hours).label('total_hours')
+        ).join(
+            StudyTiming, StudyInformation.TimingID == StudyTiming.TimingID
+        ).filter(
+            StudyInformation.UserID == user_id,
+            StudyInformation.Date == today
+        ).group_by(StudyTiming.TimingName).all()
+        todays_study = [(timing[0], hours_to_hhmm(timing[1])) for timing in todays_study]
+        timings = StudyTiming.query.all()
+        return render_template('add_study_time.html', 
+                        timings=timings, 
+                        default_date=dt.today().strftime('%Y-%m-%d'),
+                        todays_study=todays_study)
 
 
 if __name__ == '__main__':

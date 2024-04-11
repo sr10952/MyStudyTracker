@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Study Statistics</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <h1>Study Statistics</h1>
@@ -17,7 +18,7 @@
     <p>{{ seven_days_avg[0] }} hours</p>
 
     <h2>Daily Study Time by Slot</h2>
-    <table>
+    <table class="statistics-table">
         <tr>
             <th>Date</th>
             <th>Before Shachris</th>

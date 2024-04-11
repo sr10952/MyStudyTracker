@@ -1,12 +1,53 @@
-<form method="post" action="/add_study_time">
-    Timing: 
-    <select name="timing_id">
-        {% for timing in timings %}
-            <option value="{{ timing.TimingID }}">{{ timing.TimingName }}</option>
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Add Study Time</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <form method="post" action="/add_study_time">
+        <div>
+            <label>Timing:</label>
+            <select name="timing_id">
+                {% for timing in timings %}
+                <option value="{{ timing.TimingID }}">{{ timing.TimingName }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label>Hours:</label>
+            <input type="number" name="hours" min="0" max="23">
+        </div>
+        <div>
+            <label>Minutes:</label>
+            <input type="number" name="minutes" min="0" max="59">
+        </div>
+        <div>
+            <label>Date:</label>
+            <input type="date" name="date" value="{{ default_date }}">
+        </div>
+        <div>
+            <input type="submit" value="Add Study Time">
+        </div>
+    </form>
+    <h2>Today's Study Time</h2>
+    <table class="statistics-table">
+        <tr>
+            <th>Timing</th>
+            <th>Hours</th>
+        </tr>
+        {% for timing in todays_study %}
+        <tr>
+            <td>{{ timing[0] }}</td>
+            <td>{{ timing[1] }}</td>
+        </tr>
         {% endfor %}
-    </select><br>
-    Hours: <input type="number" name="hours" min="0" max="23"><br>
-    Minutes: <input type="number" name="minutes" min="0" max="59"><br>
-    Date: <input type="date" name="date" value="{{ default_date }}"><br>
-    <input type="submit" value="Add Study Time">
-</form>
+    </table>
+
+    <!-- Link to View More Statistics -->
+    <a href="{{ url_for('statistics') }}">View More Statistics</a>
+</body>
+
+</html>
