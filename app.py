@@ -137,12 +137,19 @@ def statistics():
         StudyInformation.UserID == user_id,
         StudyInformation.Date >= datetime.datetime.now() - datetime.timedelta(days=7)
     ).subquery()
-    seven_days_avg = db.session.query(
+    seven_days_avg_hours = db.session.query(
         (db.func.coalesce(sum_query.columns[0], 0) / 7).label("THours")
-    ).one()
+    ).scalar()
+
+    # Make sure to format only if seven_days_avg_hours is not None
+    if seven_days_avg_hours is not None:
+        print(seven_days_avg_hours)
+        seven_days_avg = hours_to_hhmm(seven_days_avg_hours)
+    else:
+        seven_days_avg = "00:00"
 
     # Query for Daily by Slot
-    daily_by_slot = db.session.query(
+    daily_by_slot_raw = db.session.query(
     StudyInformation.Date,
     db.func.sum(db.case((StudyTiming.TimingName == 'BeforeShachris', StudyInformation.Hours), else_=0)).label('BeforeShachrisHours'),
     db.func.sum(db.case((StudyTiming.TimingName == 'AM', StudyInformation.Hours), else_=0)).label('AMHours'),
@@ -154,8 +161,18 @@ def statistics():
     ).filter(
         StudyInformation.UserID == user_id
     ).group_by(StudyInformation.Date).order_by(StudyInformation.Date).all()
-
-
+    daily_by_slot = []
+    for entry in daily_by_slot_raw:
+        date, before_shachris, am, pm, night, total = entry
+        formatted_entry = (
+            date,
+            hours_to_hhmm(before_shachris),
+            hours_to_hhmm(am),
+            hours_to_hhmm(pm),
+            hours_to_hhmm(night),
+            hours_to_hhmm(total)
+        )
+        daily_by_slot.append(formatted_entry)
 
     return render_template('statistics.html', seven_days_sum=seven_days_sum, seven_days_avg=seven_days_avg, daily_by_slot=daily_by_slot)
 
