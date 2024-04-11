@@ -4,6 +4,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask import Flask, redirect, url_for, session, render_template, request, g
 from authlib.integrations.flask_client import OAuth
 import os
+from pyluach import dates, hebrewcal, parshios #trying to convert to hebrew dates
+
 
 app = Flask(__name__)
 oauth = OAuth(app)
@@ -66,6 +68,15 @@ def hours_to_hhmm(hours):
     mm = total_minutes % 60
     return f"{hh:02d}:{mm:02d}"
 
+def convert_to_hebrew_date(gregorian_date):
+    # Convert the datetime.date object to GregorianDate
+    gregorian = dates.GregorianDate(gregorian_date.year, gregorian_date.month, gregorian_date.day)
+    
+    # Convert to HebrewDate
+    hebrew = gregorian.to_heb()
+
+    # Format the Hebrew date as a string
+    return hebrew.hebrew_date_string()
 
 @app.route('/')
 def index():
@@ -173,8 +184,15 @@ def statistics():
             hours_to_hhmm(total)
         )
         daily_by_slot.append(formatted_entry)
+    
+    new_daily_by_slot = [] #convert to hebrew
+    for entry in daily_by_slot:
+        date, before_shachris, am, pm, night, total = entry
+        hebrew_date = convert_to_hebrew_date(date)
+        new_entry = (hebrew_date, before_shachris, am, pm, night, total)
+        new_daily_by_slot.append(new_entry)
 
-    return render_template('statistics.html', seven_days_sum=seven_days_sum, seven_days_avg=seven_days_avg, daily_by_slot=daily_by_slot)
+    return render_template('statistics.html', seven_days_sum=seven_days_sum, seven_days_avg=seven_days_avg, daily_by_slot=new_daily_by_slot)
 
 @app.route('/add_study_time', methods=['GET', 'POST'])
 def add_study_time():
