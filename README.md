@@ -1,5 +1,8 @@
 # MyStudyTracker
 
+# V1 - working site
+[mst.shimshey.com](https://mst.shimshey.com)
+
 ## Introduction
 MyStudyTracker is a Flask application for tracking study times. currently in development
 supports add_study_time and statistics

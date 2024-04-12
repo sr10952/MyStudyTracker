@@ -80,7 +80,9 @@ def convert_to_hebrew_date(gregorian_date):
 
 @app.route('/')
 def index():
-    return "Welcome to MyStudyTracker!"
+    #return "Welcome to MyStudyTracker!"
+    return redirect(url_for('add_study_time'))
+
 
 @app.route('/login')
 def login():
@@ -238,4 +240,5 @@ def add_study_time():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    #app.run(debug=True)
+    app.run(debug=False, host='0.0.0.0', port=80)
