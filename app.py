@@ -28,17 +28,20 @@ google = oauth.register(
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://username:password@localhost/mystudytracker'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
+
+db = SQLAlchemy(app)
 class User(db.Model):
-    __tablename__ = 'Users'  # specify the actual table name here
+    __tablename__ = 'Users' 
     UserID = db.Column(db.Integer, primary_key=True)
     Username = db.Column(db.String(50), nullable=False)
     GoogleID = db.Column(db.String(255), unique=True, nullable=True)
 
 class StudyInformation(db.Model):
-    __tablename__ = 'StudyInformation'  # specify the actual table name here
+    __tablename__ = 'StudyInformation' 
     RecordID = db.Column(db.Integer, primary_key=True)
-    UserID = db.Column(db.Integer, db.ForeignKey('Users.UserID'), nullable=False)  # use actual table name
-    TimingID = db.Column(db.Integer, db.ForeignKey('StudyTimings.TimingID'), nullable=False)  # use actual table name
+    UserID = db.Column(db.Integer, db.ForeignKey('Users.UserID'), nullable=False)  
+    TimingID = db.Column(db.Integer, db.ForeignKey('StudyTimings.TimingID'), nullable=False) 
     Hours = db.Column(db.Float, nullable=False)
     Date = db.Column(db.Date, nullable=False)
 
@@ -74,19 +77,30 @@ def convert_to_hebrew_date(gregorian_date):
     
     # Convert to HebrewDate
     hebrew = gregorian.to_heb()
+    parsha = parshios.getparsha_string(hebrew, hebrew=True)
+    hebrew_month_name = hebrewcal.Month(hebrew.year, hebrew.month).month_name(True)
 
-    # Format the Hebrew date as a string
-    return hebrew.hebrew_date_string()
+    #day_of_week = hebrew.day_of_week_name_en() ##whats the syntax.......
+
+  # Return a dictionary with all data
+    return {
+      "hebrew_date_string": hebrew.hebrew_date_string(),
+      "h_month": hebrew_month_name,
+      "parsha": parsha,
+      #"day_of_week": day_of_week
+      }
+
 
 @app.route('/')
 def index():
     #return "Welcome to MyStudyTracker!"
     return redirect(url_for('add_study_time'))
 
-
 @app.route('/login')
 def login():
-    return google.authorize_redirect(url_for('authorize', _external=True))
+    return google.authorize_redirect(url_for('authorize', _external=True, _scheme='https'))
+
+    #return google.authorize_redirect(url_for('authorize', _external=True))
 
 @app.route('/logout')
 def logout():
@@ -127,6 +141,77 @@ def authorize():
         return redirect('/')
     except Exception as e:
         return f'An error occurred: {str(e)}'
+    
+@app.route('/transactions', methods=['GET', 'POST'])
+def transactions():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']  # Assuming user ID retrieval for now
+
+    # Get default date range (last 30 days)
+    today = dt.today().date()
+    default_start_date = today - timedelta(days=30)
+
+    # Handle form submission for date range change
+    if request.method == 'POST':
+        start_date_str = request.form['start_date']
+        end_date_str = request.form['end_date']
+
+        # Validate and parse dates
+        try:
+            start_date = dt.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = dt.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            # Handle invalid date format (e.g., display error message)
+            flash('Invalid date format. Please use YYYY-MM-DD.', 'error')
+            start_date = default_start_date
+            end_date = today
+        else:
+            # Ensure end date is after or equal to start date
+            if end_date < start_date:
+                flash('End date cannot be before start date.', 'error')
+                start_date = default_start_date
+                end_date = today
+
+    else:
+        start_date = default_start_date
+        end_date = today
+
+
+    timing_text_map = {
+    1: "לפני התפלה",
+    2: "לפני הצהריים",
+    3: "אחר הצהריים",
+    4: "לילה"
+    }
+
+
+    # Query for transactions within date range
+    transactions = db.session.query(StudyInformation) \
+        .filter(
+            StudyInformation.UserID == user_id,
+            StudyInformation.Date >= start_date,
+            StudyInformation.Date <= end_date
+        ) \
+        .order_by(StudyInformation.Date).all()
+
+    # Convert hours to hours:minutes format
+    transactions = [
+        (entry.RecordID, convert_to_hebrew_date(entry.Date)["hebrew_date_string"], timing_text_map[entry.TimingID], hours_to_hhmm(entry.Hours))  # Access ID directly
+        for entry in transactions
+    ]
+
+
+
+
+
+    return render_template('transactions.html',
+                           transactions=transactions,
+                           start_date=start_date.strftime('%Y-%m-%d'),
+                           end_date=end_date.strftime('%Y-%m-%d'),
+                           default_start_date=default_start_date.strftime('%Y-%m-%d'))
+
 
 
 @app.route('/statistics')
@@ -190,11 +275,62 @@ def statistics():
     new_daily_by_slot = [] #convert to hebrew
     for entry in daily_by_slot:
         date, before_shachris, am, pm, night, total = entry
-        hebrew_date = convert_to_hebrew_date(date)
+        hebrew_date = convert_to_hebrew_date(date)["hebrew_date_string"]
         new_entry = (hebrew_date, before_shachris, am, pm, night, total)
         new_daily_by_slot.append(new_entry)
 
     return render_template('statistics.html', seven_days_sum=seven_days_sum, seven_days_avg=seven_days_avg, daily_by_slot=new_daily_by_slot)
+
+
+@app.route('/dailylog')
+def dailylog():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+
+    range_days = int(request.args.get('range', 7))
+
+
+    # Query for Daily by Slot
+    daily_by_slot_raw = db.session.query(
+    StudyInformation.Date,
+    db.func.sum(db.case((StudyTiming.TimingName == 'BeforeShachris', StudyInformation.Hours), else_=0)).label('BeforeShachrisHours'),
+    db.func.sum(db.case((StudyTiming.TimingName == 'AM', StudyInformation.Hours), else_=0)).label('AMHours'),
+    db.func.sum(db.case((StudyTiming.TimingName == 'PM', StudyInformation.Hours), else_=0)).label('PMHours'),
+    db.func.sum(db.case((StudyTiming.TimingName == 'Night', StudyInformation.Hours), else_=0)).label('NightHours'),
+    db.func.sum(StudyInformation.Hours).label('TotalDailyHours')
+    ).join(
+        StudyTiming, StudyInformation.TimingID == StudyTiming.TimingID
+    ).filter(
+        StudyInformation.UserID == user_id
+    ).group_by(StudyInformation.Date).order_by(StudyInformation.Date).all()
+    daily_by_slot = []
+    for entry in daily_by_slot_raw:
+        date, before_shachris, am, pm, night, total = entry
+        formatted_entry = (
+            date,
+            hours_to_hhmm(before_shachris),
+            hours_to_hhmm(am),
+            hours_to_hhmm(pm),
+            hours_to_hhmm(night),
+            hours_to_hhmm(total)
+        )
+        daily_by_slot.append(formatted_entry)
+    
+    new_daily_by_slot = [] #convert to hebrew
+    for entry in daily_by_slot:
+        date, before_shachris, am, pm, night, total = entry
+        hebrew_date_info = convert_to_hebrew_date(date)
+        #hebrew_date = convert_to_hebrew_date(date)
+        new_entry = (
+            hebrew_date_info["hebrew_date_string"],  hebrew_date_info["parsha"], before_shachris, am, pm, night, total)
+
+            #hebrew_date, before_shachris, am, pm, night, total)
+        new_daily_by_slot.append(new_entry)
+
+    return render_template('dailylog.html', daily_by_slot=new_daily_by_slot)
+
 
 @app.route('/add_study_time', methods=['GET', 'POST'])
 def add_study_time():
@@ -219,7 +355,9 @@ def add_study_time():
         db.session.add(new_study_time)
         db.session.commit()
 
-        return 'Study time added successfully'
+        flash('Study time added successfully!', 'success')
+        #return 'Study time added successfully'
+        return redirect(url_for('add_study_time')) 
     else:
         timings = StudyTiming.query.all()
         todays_study = db.session.query(
@@ -240,5 +378,4 @@ def add_study_time():
 
 
 if __name__ == '__main__':
-    #app.run(debug=True)
-    app.run(debug=False, host='0.0.0.0', port=80)
+    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))

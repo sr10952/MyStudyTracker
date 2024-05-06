@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>טעגליך</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+       <h2>טעגליכע לערנען</h2>
+    <table class="statistics-table">
+        <tr>
+            <th>יום</th>
+            <th>פרשה</th>
+            <th>לפני התפלה</th>
+            <th>לפני הצהריים</th>
+            <th>אחר הצהריים</th>
+            <th>לילה</th>
+            <th>ס"ה</th>
+        </tr>
+        {% for day in daily_by_slot %}
+            <tr>
+                <td>{{ day[0] }}</td>
+                <td>{{ day[1] }}</td>
+                <td>{{ day[2] }}</td>
+                <td>{{ day[3] }}</td>
+                <td>{{ day[4] }}</td>
+                <td>{{ day[5] }}</td>
+                <td>{{ day[6] }}</td> 
+            </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

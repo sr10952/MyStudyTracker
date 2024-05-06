@@ -45,9 +45,32 @@
         </tr>
         {% endfor %}
     </table>
-
+    {% with messages = get_flashed_messages(with_categories=True) %}
+    {% if messages %}
+      <ul class="flashes">
+        {% for category, message in messages %}
+          <li class="flash alert alert-{{ category }}" id="flash-message">
+            {{ message }}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+  
+  <script>
+    const flashMessage = document.getElementById('flash-message');
+    if (flashMessage) {
+      setTimeout(() => {
+        flashMessage.classList.add('fade-out'); // Add a CSS class for fading out
+      }, 3000); // Timeout in milliseconds (adjust as needed)
+    }
+  </script>
+  
+  
     <!-- Link to View More Statistics -->
     <a href="{{ url_for('statistics') }}">View More Statistics</a>
+    <a href="{{ url_for('dailylog') }}">טעגליך</a>
+    <a href="{{ url_for('transactions') }}">דעטאלן</a>
 </body>
 
 </html>

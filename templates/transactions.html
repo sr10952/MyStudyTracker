@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Study Statistics</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<h1>Transactions</h1>
+
+<form method="POST">
+  <label for="start_date">Start Date:</label>
+  <input type="date" name="start_date" id="start_date" value="{{ start_date }}">
+  <label for="end_date">End Date:</label>
+  <input type="date" name="end_date" id="end_date" value="{{ end_date }}">
+  <button type="submit">Filter</button>
+</form>
+
+<table class="statistics-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Date</th>
+        <th>Timing</th>
+        <th>Hours</th>
+        <th>Edit</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for transaction in transactions %}
+      <tr>
+        <td>{{ transaction[0] }}</td>
+        <td>{{ transaction[1] }}  </td>
+        <td>{{ transaction[2] }}</td>
+        <td>{{ transaction[3] }}</td>
+        <td><button type="button" class="edit-button">Edit</button></td>
+     </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  
+
+  <script>
+    const editButtons = document.querySelectorAll('.edit-button');
+    
+    editButtons.forEach(button => {
+      button.addEventListener('click', (event) => {
+        alert('Edits currently not supported.');
+      });
+    });
+    </script>
